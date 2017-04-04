@@ -1,6 +1,6 @@
 <?php
 $aplicacion='GCSADMIN';
-include_once($_SERVER['DOCUMENT_ROOT'].'/_database/cabecera_jq.php');
+include_once($_SERVER['DOCUMENT_ROOT'].'/_database/cabe_jq.php');
 include_once('lib.php');
 
 ?>
