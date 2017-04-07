@@ -13,35 +13,25 @@ class clasFunciones extends Meta{
 	
 	public function tabs(){
 		$permiso = self::$db->permisoUsuarioReporte($_SESSION[user][id]);
-		$permiso_cav = self::$db->permiso_admin($_SESSION[user][id]);
-		$permiso_user_cav = self::$db->permiso_usuario_cav($_SESSION[user][id]);
-		
 	?>
 		<div id='maintab'>
 			<ul>
-				<!--INCLUIR FILTRO $permiso_user_cav-->
 				<li><a href='controller.php?mod=pest_ingreso'>Ingreso Escalamiento Orden</a></li>
-				
-				
 				<li><a href='controller.php?mod=pest_ver'>Ver Ordenes</a></li>
-				
-				<!--INCLUIR FILTRO $permiso_user_cav-->
 				<li><a href='controller.php?mod=pest_fin'>Ver Ordenes Pre-cerradas y Finalizadas</a></li>
-				
-				
 				<? if ($permiso['TOTAL'][0] == 1){ ?>
-				<li><a href='controller.php?mod=pest_report'>Ver Reportes</a></li>
+				<li><a href='controller.php?mod=pest_list_ordenes'>Listado Ordenes</a></li>	
+				<li><a href='controller.php?mod=pest_asig_ordenes'>Asignar Ordenes</a></li>
+				<!-- <li><a href='controller.php?mod=pest_report'>Ver Reportes</a></li> -->
 				<!-- <li><a href='controller.php?mod=mant_cav'>Mantenedor CAV</a></li>
 				<li><a href='controller.php?mod=mant_sla'>Mantenedor SLA</a></li> -->
 				<? } ?>
-				<? if (count($permiso_cav)>1){ ?>
-				<li><a href='controller.php?mod=mant_cav'>Mantenedor Usuario CAV</a></li>
-				<? } ?>
+				
 			</ul>
 		</div>
 		<script type='text/javascript'>;
-			var IntervalosOrd;
-			var IntervalosOrdR;
+			//var IntervalosOrd;
+			//var IntervalosOrdR;
 			tabs_jqAAA('maintab');
 		</script>
 	<?
@@ -119,58 +109,47 @@ class clasFunciones extends Meta{
 	}
 
 	public function BuscarOrden($valor){
-		
+		$resp = self::$db->BuscarOrdenTango($valor);
 
 		$pos = strpos($valor, "-");
 		if ($pos === false) {
-			if (is_numeric($valor)){
-				$resp = self::$db->BuscarOrdenTango($valor);
-				if ((count($resp)>1)){					
-					self::MostrarOrdenesEsca($resp['ID_ESCALAMIENTO'][0]);
-				} else {
-					$fs = new HtmlFieldset();
-					$lg = new HtmlLegend("Sin Informacion");
-					$fs->add($lg);
-					$p = new HtmlP("No Existen registros en la Base de Datos2");
-					$fs->add($p);
-					echo $fs;
-				}
-			}else{
-					$fs = new HtmlFieldset();
-					$lg = new HtmlLegend("Sin Informacion");
-					$fs->add($lg);
-					$p = new HtmlP("Rut o Escalamiento invalido.");
-					$fs->add($p);
-					echo $fs;
-			}	
+			if (count($resp)>1){
+				self::MostrarOrdenesEsca($resp['ID_ESCALAMIENTO'][0]);
+			} else {
+				$fs = new HtmlFieldset();
+				$lg = new HtmlLegend("Sin Informacion");
+				$fs->add($lg);
+				$p = new HtmlP("No Existen registros en la Base de Datos");
+				$fs->add($p);
+				echo $fs;
+			}
 		}else{
-			$resp = self::$db->BuscarOrdenTango($valor);
 			$resp1 = self::$db->BuscarOrdenEscalada($valor);
 			$resp2 = self::$db->BuscarClienteTango($valor);
 			$resp4 = self::$db->DatosViviendaTango($valor);
 			echo "<pre>";
 			echo "</pre>";
-			
-			if( count($resp) == 1 ){
-				if ((count($resp) == 1) && (count($resp2) > 1)){
+
+			if( count($resp['ID_ESCALAMIENTO']) == 1 ){
+				self::MostrarClienteTango($resp2,$resp4);
+			}else{
+				if ((count($resp['ID_ESCALAMIENTO']) == 0) && (count($resp2['RUT_PERSONA']) > 0)){
 					self::MostrarClienteTango($resp2,$resp4);
-				}else{
-					$fs = new HtmlFieldset();
-					$lg = new HtmlLegend("Sin Informacion");
-					$fs->add($lg);
-					$p = new HtmlP("No Existen registros en la Base de Datos");
-					$fs->add($p);
-					echo $fs;
-				}			
-			}else {
-				if( count($resp['ID_ESCALAMIENTO']) == 1 ){
-					self::MostrarClienteTango($resp2,$resp4);
-				}else{
+				}else{	
 					if( count($resp['ID_ESCALAMIENTO']) > 1 ){
 						self::MostrarClienteTango($resp2,$resp4);
+					}else{
+						if( count($resp['ID_ESCALAMIENTO']) == 0 ){
+							$fs = new HtmlFieldset();
+							$lg = new HtmlLegend("Sin Informacion");
+							$fs->add($lg);
+							$p = new HtmlP("No Existen registros en la Base de Datos");
+							$fs->add($p);
+							echo $fs;
+						}	
 					}
-				}
-			}											
+				}	
+			}
 		}
 }
 
@@ -208,6 +187,12 @@ class clasFunciones extends Meta{
 	            <td width='20%'><?=self::inputText(array("name"=>"fcompro", "value"=>$resp['FECHA_COMPROMISO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
 	            <td width='20%'><div class="titulo">Area Funcional</div></td>
 	            <td width='20%'><?=self::inputText(array("name"=>"area", "value"=>$resp['DESC_AREAFUN'][0],"class"=>"ui-state-default", "readonly"=>"true")) ?></td>
+			</tr>
+			<tr>
+	    		<td width='20%'><div class="titulo">Fecha Compromiso Orden</div></td>
+	            <td width='20%'><?=self::inputText(array("name"=>"fech_comp_ord", "value"=>$resp['FECH_COMP_ORD'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
+	            <td width='20%'><div class="titulo">Numero Orden Tango</div></td>
+	            <td width='20%'><?=self::inputText(array("name"=>"numero_orden_tango", "value"=>$resp['NUMERO_ORDEN_TANGO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
 			</tr>
 			<tr>
 				<td width='20%' valign='top'><div class="titulo">Tipo de Escalamiento</div></td>
@@ -281,7 +266,7 @@ class clasFunciones extends Meta{
 	    		<td width='20%'><div class="titulo">Tipo Escalamiento</div></td>
 	            <td width='20%'><?=self::combobox("combo_tipo_o",$resp6,array("onchange"=>""))?></td>
 				<td width='20%'><div class="titulo">Ingrese Comentario</div></td>
-	                    <td width='20%'><?=self::inputTextArea(array("name"=>"textComentario_o", "value"=>$resp['NUEVAOBSERVA'][0], "class"=>"ui-state-default", "readonly"=>"true"))?></td>
+	                    <td width='20%'><?=self::inputTextArea(array("name"=>"textComentario_o", "value"=>$resp['NUEVAOBSERVA'][0], "class"=>"ui-state-default"))?></td>
 			</tr>
 
 	        <tr><td width='20%'><div class="titulo">Servicios</div></td></tr>
@@ -315,20 +300,12 @@ class clasFunciones extends Meta{
 		}
 		if (<? echo $resp['TIPO_ESCALAMIENTO'][0] ?>!=null) {
 			 document.getElementById("combo_tipo_o").value  = <? echo $resp['TIPO_ESCALAMIENTO'][0] ?>;
-		}
-		document.getElementById("check1o").disabled = true;     	        
-		document.getElementById("check2o").disabled = true;     	        
-		document.getElementById("check3o").disabled = true;     	        
-		document.getElementById("check4o").disabled = true;     	        
-		document.getElementById("combo_motivoc_o").disabled = true;     	        
-		document.getElementById("combo_tipo_o").disabled = true;     	        
-		//document.getElementById("textComentario_o").readonly = true;     	        
+		}	       	        
 		</script>	
 
 			</tr>
 				<tr><td width='20%'><div class="titulo">Correo electronico</div></td>
 			    <td width='20%'><?=self::inputText(array("name"=>"correo_o", "value"=>$resp['CORREO_ELECTRONICO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
-				<? echo "<td><a href='http://nnoc.vtr.cl/gvaldivia/escalamiento_critico/documentos/".$resp['CORREO_ELECTRONICO'][0]."'>Descargar</a></td>";?>
 			</tr>
 			<tr>
 	    		<td width='20%'></td>
@@ -349,7 +326,6 @@ class clasFunciones extends Meta{
 <div id="divEnviaMail"></div>	
 <div id="ventanita"></div>	
 		<script type="text/javascript">
-			//$("#combo_tipo_o").readOnly = true;
 			$("#formMostrar").accordion({ collapsible: true,autoHeight: false   });
 		</script>
     <?
@@ -397,7 +373,7 @@ class clasFunciones extends Meta{
 	    		<td width='20%'><div class="titulo">Tipo Escalamiento</div></td>
 	            <td width='20%'><?=self::combobox("combo_tipo_o",$resp6,array("onchange"=>""))?></td>
 				<td width='20%'><div class="titulo">Ingrese Comentario</div></td>
-	                    <td width='20%'><?=self::inputTextArea(array("name"=>"textComentario_o", "value"=>$resp['NUEVAOBSERVA'][0], "class"=>"ui-state-default", "readonly"=>"true"))?></td>
+	                    <td width='20%'><?=self::inputTextArea(array("name"=>"textComentario_o", "value"=>$resp['NUEVAOBSERVA'][0], "class"=>"ui-state-default"))?></td>
 			</tr>
 
 	        <tr><td width='20%'><div class="titulo">Servicios</div></td></tr>
@@ -414,7 +390,6 @@ class clasFunciones extends Meta{
 			            <td width='20%'><?=self::combobox("combo_motivoc_o",$resp5,array("onchange"=>""))?></td>
 
 		<script type="text/javascript">
-		document.getElementById("check1o").disabled = true; 
 		if (<? echo $resp['SERVICIO_TV'][0] ?>==1) {
 			document.getElementById("check1o").checked  = true;
 		}		
@@ -433,19 +408,12 @@ class clasFunciones extends Meta{
 		if (<? echo $resp['TIPO_ESCALAMIENTO'][0] ?>!=null) {
 			 document.getElementById("combo_tipo_o").value  = <? echo $resp['TIPO_ESCALAMIENTO'][0] ?>;
 		}      
-	    document.getElementById("check1o").disabled = true;    
-	    document.getElementById("check2o").disabled = true;    
-	    document.getElementById("check3o").disabled = true;    
-	    document.getElementById("check4o").disabled = true;    
-	    document.getElementById("combo_motivoc_o").disabled = true;    
-	    document.getElementById("combo_tipo_o").disabled = true;    
-	    //document.getElementById("textComentario_c").readonly = true;    
+	        
 		</script>	
 
 			</tr>
 				<tr><td width='20%'><div class="titulo">Correo electronico</div></td>
 			    <td width='20%'><?=self::inputText(array("name"=>"correo_o", "value"=>$resp['CORREO_ELECTRONICO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
-				<? echo "<td><a href='http://nnoc.vtr.cl/gvaldivia/escalamiento_critico/documentos/".$resp['CORREO_ELECTRONICO'][0]."'>Descargar</a></td>";?>
 			</tr>
 			<tr>
 	    		<td width='20%'></td>
@@ -495,21 +463,18 @@ class clasFunciones extends Meta{
 	public function buscarDatosCliente($iden, $rut){
 		$respIden = self::$db->getDatosIdenTango($iden, $rut);
 		
-		if ((count($respIden['ID_ESCALAMIENTO']) == 0)){ 
-		//|| ($iden!= NULL)){
+		if ((count($respIden['ID_ESCALAMIENTO'][0]) == 0) &&  ($iden!= NULL)){
 			$resp3 = self::$db->ViviendaClienteTango($iden);
 			$resp5 = self::$db->qry_combomotivo();
 			$resp6 = self::$db->qry_combotipo();
-		echo "<pre>";
-		//print_r($resp3);
-		echo "</pre>";
+
 		?>
 		<div id="IngresarComentario_c">
 						<h3><a href="#"><div align="left"><b>Datos adicionales</b></div></a></h3>
 		<table >
 			<tr>
-		        <td width='20'><div class="titulo">Zona</div></td>
-		        <td width='20%'><?=self::inputText(array("name"=>"zonac", "value"=>$resp3['ZONA'][0],"class"=>"ui-state-default", "readonly"=>"true")) ?></td>
+		        <td width='20'><div class="titulo">Localidad</div></td>
+		        <td width='20%'><?=self::inputText(array("name"=>"localidadc", "value"=>$resp3['LOCALIDAD'][0],"class"=>"ui-state-default", "readonly"=>"true")) ?></td>
 
 		    	<td width='20%'><div class="titulo">Nodo</div></td>
 		        <td width='20%'><?=self::inputText(array("name"=>"nodoc", "value"=>$resp3['NODO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
@@ -534,28 +499,31 @@ class clasFunciones extends Meta{
 		        <tr></tr>		    			    
 
 		    <tr>
-		    <td width='20%'><div class="titulo">Motivo Escalamiento</div></td>
-		            <td width='20%'><?=self::combobox("combo_motivoc",$resp5,array("onchange"=>""))?></td>
+			    <td width='20%'><div class="titulo">Motivo Escalamiento</div></td>
+			    <td width='20%'><?=self::combobox("combo_motivoc",$resp5,array("onchange"=>""))?></td>
+			    <td width='20%'><div class="titulo">Fecha Compromiso Orden</div></td>
+			    <td width='20%'>
+			    	<?= $this->inputFecha('fech_comp_ord',array("value"=>date('d/m/Y'))) ?><?= self::comboHora(array("name"=>"horas_comp_ord","default"=>$hora_ini[0],"style"=>"width:40px","first_option"=>false))?><?= self::comboMinuto(array("name"=>"minutos_comp_ord","default"=>$hora_ini[1],"style"=>"width:40px","first_option"=>false))?>
+			    </td>
+			</tr>
+			<tr>
+			    <td width='20%'><div class="titulo">N° Orden Tango</div></td>
+			    <td width='20%'><?=self::inputText(array("name"=>"numero_orden_tango", "style"=>"width:80px", "value"=>"","class"=>"ui-state-default"))?></td>
+			    <td width='20%'><div class="titulo">&nbsp;</div></td>
+			    <td width='20%'>&nbsp;</td>
 			</tr>
 			<tr><td width='20%'><div class="titulo">Correo electronico</div></td>
 		    <td width='20%'><?=self::inputText(array("name"=>"correoc", "value"=>"","class"=>"ui-state-default", "readonly"=>"true"))?></td>	
 
 		    <td><input type="button" name="adjuntarc" value="Adjuntar" onclick="ventanita2();" /></td>
-		    <td><div id="descarga_correo"></div></td>
 			</tr>
-									
-							<td width='20%'><div class="titulo">Ingrese Comentario</div></td>
-		                    <td width='20%'><?=self::inputTextArea(array("name"=>"textComentario_c","class"=>"ui-state-default"))?></td>
-		                    <tr><td width='20%'><input type="button" name="IngresaEscalamiento_c" value="Ingresar" onclick="IngresaEscalamiento();" /></td></tr>
-		                
+				<td width='20%'><div class="titulo">Ingrese Comentario</div></td>
+                <td width='20%'><?=self::inputTextArea(array("name"=>"textComentario_c","class"=>"ui-state-default"))?></td>
+                <tr><td width='20%'><input type="button" name="IngresaEscalamiento_c" value="Ingresar" onclick="IngresaEscalamiento();" /></td></tr>
 			</div>
-			<!--
-				</form>
-			-->
+			</form>
 			<script type="text/javascript">
-
 		        $("#IngresarComentario_c").accordion({ collapsible: true,autoHeight: false   });
-		        //$("#combo_tipo").readOnly = true;
 			</script>
 
 		</table>	
@@ -568,12 +536,14 @@ class clasFunciones extends Meta{
 	}
 
 	public function guardar_escalamiento() {
-			$resp = self::$db->GuardarEscalamiento($_GET['RUTP'], $_GET['NOMB'], $_GET['DIRE'], $_GET['LOCA'], $_GET['NODO'], $_GET['TI_ESC'], $_GET['OBSN'], $_GET['SER_TV'], $_GET['SER_PRE'], $_GET['SER_FONO'], $_GET['SER_INET'], $_GET['MOTI_ESC'], $_GET['MOTIVO_DESC']);	
+			$resp = self::$db->GuardarEscalamiento($_GET['RUTP'], $_GET['NOMB'], $_GET['DIRE'], $_GET['LOCA'], $_GET['NODO'], $_GET['TI_ESC'], $_GET['OBSN'], $_GET['SER_TV'], $_GET['SER_PRE'], $_GET['SER_FONO'], $_GET['SER_INET'], $_GET['MOTI_ESC'], $_GET['MOTIVO_DESC'], $_GET['FECH_COMP_ORD']);	
 			echo $resp['codigo'];
 	}	
 
 	public function guardar_escalamientoNuevo() {
-			$resp = self::$db->GuardarEscalamientoNuevo($_GET['RUTP'], $_GET['NOMB'], $_GET['DIRE'], $_GET['LOCA'], $_GET['NODO'], $_GET['TI_ESC'], $_GET['OBSN'], $_GET['SER_TV'], $_GET['SER_PRE'], $_GET['SER_FONO'], $_GET['SER_INET'], $_GET['MOTI_ESC'], $_GET['MOTIVO_DESC'], $_GET['CORREO']);		
+			$resp = self::$db->GuardarEscalamientoNuevo($_GET['RUTP'], $_GET['NOMB'], $_GET['DIRE'], $_GET['LOCA'], $_GET['NODO'], $_GET['TI_ESC'], $_GET['OBSN'], $_GET['SER_TV'], $_GET['SER_PRE'], $_GET['SER_FONO'], $_GET['SER_INET'], $_GET['MOTI_ESC'], $_GET['MOTIVO_DESC'], $_GET['CORREO'], $_GET['FECH_COMP_ORD'], $_GET['HORAS_COMP_ORD'], $_GET['MINUTOS_COMP_ORD'], $_GET['NUMERO_ORDEN_TANGO']);		
+			$id_escalamiento = self::$db->getMaxIdEscalamiento();
+			self::$db->addBitacoraFechCompOrd($id_escalamiento['ID_ESCALAMIENTO'][0], $_GET['FECH_COMP_ORD'], $_GET['HORAS_COMP_ORD'], $_GET['MINUTOS_COMP_ORD']);
 			self::$db->guarda_correo($_GET['CORREO']);
 			echo $resp['codigo'];
 	}
@@ -596,14 +566,17 @@ class clasFunciones extends Meta{
 		echo $resp['codigo'];
 	}
 	
-	public function VerOrdenes($escala, $terr, $reg, $localidad){
-		if( $escala == 'undefined' ) $escala = null;
+	public function VerOrdenes($escala, $terr, $reg, $localidad, $fechaDesde, $fechaHasta){
+		$desde = ( $fechaDesde != '' ) ? $fechaDesde : date('d/m/Y', strtotime("-365 day"));
+		$hasta = ( $fechaHasta != '' ) ? $fechaHasta : date('d/m/Y');
+		
+		if( $escala == 'undefined' ) $escala = '';
 		$permiso = self::$db->permisoUsuario($_SESSION[user][id]);
-		$asig = self::$db->BuscarOrdenAsig($escala, $terr, $reg, $localidad);	
-		$pend = self::$db->BuscarOrdenPend($escala, $terr, $reg, $localidad);	
-		$ejec = self::$db->BuscarOrdenEjec($escala, $terr, $reg, $localidad);
-		$precer = self::$db->BuscarOrdenPrecer($escala, $terr, $reg, $localidad);
-		$fina = self::$db->BuscarOrdenFina($escala, $terr, $reg, $localidad);
+		$asig = self::$db->BuscarOrdenAsig($escala, $terr, $reg, $localidad, $fechaDesde, $fechaHasta);	
+		$pend = self::$db->BuscarOrdenPend($escala, $terr, $reg, $localidad, $fechaDesde, $fechaHasta);	
+		$ejec = self::$db->BuscarOrdenEjec($escala, $terr, $reg, $localidad, $fechaDesde, $fechaHasta);
+		$precer = self::$db->BuscarOrdenPrecer($escala, $terr, $reg, $localidad, $fechaDesde, $fechaHasta);
+		$fina = self::$db->BuscarOrdenFina($escala, $terr, $reg, $localidad, $fechaDesde, $fechaHasta);
 
 		for ($i=0; $i < count($asig['ID_ESCALAMIENTO']); $i++) { 
 			$temp = $asig['ID_ESCALAMIENTO'][$i];
@@ -796,23 +769,27 @@ class clasFunciones extends Meta{
 						<table>
 							<tr>
 								<td width='30%'>Ingrese Territorio:</td>
-								<td width='20%'>Ingrese Region:</td>
 								<td width='20%'>Ingrese Comuna:</td>
-								
-							</tr><tr>
+							<? if ($permiso['TOTAL'][0] != 1){ ?>
+								<!-- <td width='20%'>Ingrese Area:</td> -->
+							<? } ?>		
+							</tr>
+							<tr>
 								<td><div id="div_territorio"><?=self::multiple2(self::$db->getTerritorio(),array( "name"=>"territorio", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selTerritorio();", "default"=>$terr ))?></div></td>
-								<td><div id="div_region"><?=self::multiple2(self::$db->getRegion($terr),array( "name"=>"region", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selRegion();", "default"=>$reg ))?></div></td>
 								<td><div id="div_comuna"><?=self::multiple2(self::$db->getComuna($terr, $reg),array( "name"=>"comuna", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selLocalidad();", "default"=>$localidad ))?></div></td>
+							<? if ($permiso['TOTAL'][0] != 1){ ?>
+								<!-- <td><div id="div_area"><?=self::multiple2(self::$db->getEscalamientos(),array( "name"=>"escalamientos", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selEscala();", "default"=>$escala ))?></div></td> -->
+							<? } ?>	
 							</tr>
 							<tr><td><br /></td></tr>
 							<? if ($permiso['TOTAL'][0] != 1){ ?>
 							<tr>
-								<td width='20%'>Ingrese Area:</td>
+								<td width='30%'>Seleccione Rango de Fecha:</td>	
+								<td>
+									<?php echo parent::inputFecha("fechaDesde", array("onChange"=>"javascript:selFecha();", "value"=>$desde ))?>
+									<?php echo parent::inputFecha("fechaHasta", array("onChange"=>"javascript:selFecha();", "value"=>$hasta ))?>
+								</td>
 							</tr>
-							<tr>
-								<td><div id="div_area"><?=self::multiple2(self::$db->getEscalamientos(),array( "name"=>"escalamientos", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selEscala();", "default"=>$escala ))?></div></td>
-							</tr>
-							
 							<? } ?>
 						</table>
 					</div>		
@@ -859,8 +836,11 @@ class clasFunciones extends Meta{
 		$permiso = self::$db->PermisoOrden($valor);
 		$permisoNombre = self::$db->getDatosMail($valor);
 		$coment = self::$db->getComentarios($valor);
+		$bitacora = self::$db->getBitacoraFechCompOrd( $valor );
 
 		$resp = self::$db->getOrdenEjecPrecer($valor);
+		list( $fech_comp_ord, $hora_com_comp_ord ) = explode( ' ', $resp['FECH_COMP_ORD'][0] );
+		list( $hora_comp_ord, $minutos_comp_ord, $segundo_comp_ord ) = explode( ':', $hora_com_comp_ord ); 
 
 	?>
 		<form name="formulario3" id="formulario3">
@@ -918,6 +898,14 @@ class clasFunciones extends Meta{
 					            <td width='20%'><?=self::inputText(array("name"=>"obserori", "value"=>$resp['FECHA_FINALIZADA'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>		          
 							</tr>
 							<tr>
+								<td width='20%' valign='top'><div class="titulo">Fecha Compromiso Orden</div></td>
+					            <td width='20%' valign='top'>
+					            	<?= $this->inputFecha('fech_comp_ord',array("value"=>$fech_comp_ord)) ?><?= self::comboHora(array("name"=>"horas_comp_ord","default"=>$hora_comp_ord,"style"=>"width:40px","first_option"=>false))?><?= self::comboMinuto(array("name"=>"minutos_comp_ord","default"=>$minutos_comp_ord,"style"=>"width:40px","first_option"=>false))?>
+					            </td>
+					    		<td width='20%' valign='top'><div class="titulo">Numero Orden Tango</div></td>
+					            <td width='20%'><?=self::inputText(array("name"=>"numero_orden_tango", "value"=>$resp['NUMERO_ORDEN_TANGO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>		          
+							</tr>
+							<tr>
 								<td width='20%' valign='top'><div class="titulo">Observacion</div></td>
 					            <td width='20%' valign='top'><?=self::inputTextArea(array("name"=>"activ", "value"=>$resp['OBSERVACION'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
 					    		<td width='20%' valign='top'><div class="titulo">Observacion Escalamiento</div></td>
@@ -958,16 +946,21 @@ class clasFunciones extends Meta{
 					<h3><a href="#"><div align="left"><b>Ver Comentarios Anteriores</b></div></a></h3>
 					<div id="ver_orden"><?=parent::listaHtml($coment, $params)?></div>
 				</div>
-
-				<? if ($permiso['ID_ASIGNADO'][0] == $_SESSION[user][id]){ ?>
+				
+				<div id="VerBitacora">
+					<h3><a href="#"><div align="left"><b>Ver Bitacora</b></div></a></h3>
+					<div id="ver_orden"><?=parent::listaHtml($bitacora, $params)?></div>
+				</div>
+				<? 
+				if($permiso['ID_ASIGNADO'][0]=='15454'){ $permiso['ID_ASIGNADO'][0]='13201';} // '41852';
+				if ($permiso['ID_ASIGNADO'][0] == $_SESSION[user][id]){ ?>
 				<div id="FinalizarOrden">
 					<h3><a href="#"><div align="left"><b>Finalizar Orden</b></div></a></h3>
 					<div id="fin_orden">
 						<tr>
 							<td width='20%'><div class="titulo">Adjuntar PDF</div></td>
-						    <td ><?=self::inputText(array("name"=>"archivoPDFtext", "value"=>"","class"=>"ui-state-default", "readonly"=>"true"))?></td>							    
+						    <td width='20%'><?=self::inputText(array("name"=>"archivoPDFtext", "value"=>"","class"=>"ui-state-default", "readonly"=>"true"))?></td>	
 						    <td><input type="button" name="adjuntarpdf" value="Adjuntar" onclick="ventanita1();" /></td>
-						    <td><div id="descarga_pdf"></div></td>
 						</tr>
 						<tr>
 							<td width='10%'><div class="titulo">Ingrese Post Mortem</div></td>
@@ -995,6 +988,7 @@ class clasFunciones extends Meta{
 	        $("#FinalizarOrden").accordion({ collapsible: true,autoHeight: false   });
 	        $("#IngresarComentario").accordion({ collapsible: true,autoHeight: false   });
 	        $("#VerComentarios").accordion({ collapsible: true,autoHeight: false   });
+	        $("#VerBitacora").accordion({ collapsible: true,autoHeight: false   });
 		</script>
 	<? 
 	}
@@ -1003,11 +997,13 @@ class clasFunciones extends Meta{
 		$permiso = self::$db->PermisoOrden($valor);
 		$permisoNombre = self::$db->getDatosMail($valor);
 		$coment = self::$db->getComentarios($valor);
+		$bitacora = self::$db->getBitacoraFechCompOrd( $valor );
 
 		$post_acciones = self::$db->getPostAcciones($valor);
 		$resp = self::$db->getOrdenEjecPrecer($valor);
 		$telefonos = self::$db->getFonoContacto($resp['RUT_PERSONA'][0]);
-
+		list( $fech_comp_ord, $hora_completa_comp_ord ) = explode( ' ', $resp['FECH_COMP_ORD'][0] );
+		list( $horas_comp_ord, $minutos_comp_ord, $segundos_comp_ord ) = explode( ':', $hora_completa_comp_ord );
 
 		$tabla = array( "paginacion"=>"10", "fecha_ejecucion"=>"desc");
 		$params2['tabla'] = $tabla;
@@ -1069,6 +1065,16 @@ class clasFunciones extends Meta{
 					            <td width='20%'><?=self::inputText(array("name"=>"fecha_finalizacion", "value"=>$resp['FECHA_FINALIZADA'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>		          
 							</tr>
 							<tr>
+								<td width='20%' valign='top'><div class="titulo">Fecha Compromiso Orden</div></td>
+								<td width='20%' valign='top'>
+									<?= $this->inputFecha('fech_comp_ord_1',array("value"=>$fech_comp_ord)) ?><?= self::comboHora(array("name"=>"horas_comp_ord","default"=>$horas_comp_ord,"style"=>"width:40px","first_option"=>false))?><?= self::comboMinuto(array("name"=>"minutos_comp_ord","default"=>$minutos_comp_ord,"style"=>"width:40px","first_option"=>false))?>
+								</td>
+								<td width='20%' valign='top'><div class="titulo">Numero Orden Tango</div></td>
+								<td width='20%' valign='top'>
+									<?=self::inputText(array("name"=>"numero_orden_tango", "value"=>$resp['NUMERO_ORDEN_TANGO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?>
+								</td>	
+							</tr>
+							<tr>
 								<td width='20%' valign='top'><div class="titulo">Observacion</div></td>
 					            <td width='20%' valign='top'><?=self::inputTextArea(array("name"=>"observacion", "value"=>$resp['OBSERVACION'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
 					    		<td width='20%' valign='top'><div class="titulo">Observacion Escalamiento</div></td>
@@ -1092,6 +1098,11 @@ class clasFunciones extends Meta{
 					<h3><a href="#"><div align="left"><b>Ver Comentarios Anteriores</b></div></a></h3>
 					<div id="ver_orden"><?=parent::listaHtml($coment, $params)?></div>
 				</div>
+				
+				<div id="VerBitacora">
+					<h3><a href="#"><div align="left"><b>Ver Bitacora</b></div></a></h3>
+					<div id="ver_orden"><?=parent::listaHtml($bitacora, $params)?></div>
+				</div>
 
 				<div id="VerPostAcciones">
 					<h3><a href="#"><div align="left"><b>Ver Datos Anteriores</b></div></a></h3>
@@ -1109,20 +1120,19 @@ class clasFunciones extends Meta{
 						<tr>
 							<td width='20%'><div class="titulo">Correo Electronico</div></td>
 						    <td width='20%'><?=self::inputText(array("name"=>"correo_ejec", "value"=>$resp['CORREO_ELECTRONICO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>	
-						  <? echo "<td><a href='http://nnoc.vtr.cl/gvaldivia/escalamiento_critico/documentos/".$resp['CORREO_ELECTRONICO'][0]."'>Descargar</a></td>";?>
+						  <? echo "<td><a href='http://desannoc.vtr.cl/cencina/escalamiento/escalamiento_critico/documentos/".$resp['CORREO_ELECTRONICO'][0]."'>Descargar</a></td>";?>
 						</tr>	
 
 						<tr>
 							<td width='20%'><div class="titulo">Archivo Ejecucion</div></td>
 						    <td width='20%'><?=self::inputText(array("name"=>"archivoejecucion", "value"=>$resp['PDF_SUPERVISOR'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>	
-						  <? echo "<td><a href='http://nnoc.vtr.cl/gvaldivia/escalamiento_critico/documentos/".$resp['PDF_SUPERVISOR'][0]."' target='pdf-frame'>Descargar</a></td>";?>
+						  <? echo "<td><a href='http://desannoc.vtr.cl/cencina/escalamiento/escalamiento_critico/documentos/".$resp['PDF_SUPERVISOR'][0]."' target='pdf-frame'>Descargar</a></td>";?>
 						</tr>	
 				
 						<tr>
 							<td width='20%'><div class="titulo">Adjuntar PDF</div></td>
 							<td width='20%'><?=self::inputText(array("name"=>"archivoPDFtext_cav", "value"=>"","class"=>"ui-state-default", "readonly"=>"true"))?></td>	
 						    <td><input type="button" name="adjuntarpdf" value="Adjuntar" onclick="ventanita3();" /></td>
-						    <td><div id="descarga_pdf_cav"></div></td>
 						</tr>
 		                <tr>
 		                <br>
@@ -1140,31 +1150,45 @@ class clasFunciones extends Meta{
 	        $("#FinalizarOrden").accordion({ collapsible: true,autoHeight: false   });
 	        $("#VerPostAcciones").accordion({ collapsible: true,autoHeight: false   });
 	        $("#VerComentarios").accordion({ collapsible: true,autoHeight: false   });
+	        $("#VerBitacora").accordion({ collapsible: true,autoHeight: false   });
+	        
 		</script>
 	<? 
 	}
 
-	public function FinalizarOrden($valor, $comen, $postMortem, $pdf_ejec){
-		$resp = self::$db->FinalizarOrden($valor, $comen, $postMortem, $pdf_ejec);
+	public function FinalizarOrden($valor, $comen, $postMortem, $pdf_ejec, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord){
+		$resp = self::$db->FinalizarOrden($valor, $comen, $postMortem, $pdf_ejec, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		if( ! empty( $fech_comp_ord ) ){
+			self::$db->addBitacoraFechCompOrd($valor, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		}	
 		self::$db->guarda_pdf($valor, $pdf_ejec);
 		echo $resp['codigo'];
 	}
 
-	public function cerrarEscalamiento($valor, $comen, $pdf_cav){
-		$resp = self::$db->cerrarEscalamiento($valor, $comen, $pdf_cav);
+	public function cerrarEscalamiento($valor, $comen, $pdf_cav, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord){
+		$resp = self::$db->cerrarEscalamiento($valor, $comen, $pdf_cav, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		if( ! empty( $fech_comp_ord ) ){
+			self::$db->addBitacoraFechCompOrd($valor, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		}	
 		self::$db->guarda_pdf($valor, $pdf_cav);
 		echo $resp['codigo'];
 	}	
 
-	public function finalizarSinContacto($valor, $comen, $pdf_cav){
-		$resp = self::$db->finalizarSinContacto($valor, $comen);
+	public function finalizarSinContacto($valor, $comen, $pdf_cav, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord){
+		$resp = self::$db->finalizarSinContacto($valor, $comen, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		if( ! empty( $fech_comp_ord ) ){
+			self::$db->addBitacoraFechCompOrd($valor, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		}	
 		self::$db->guarda_pdf($valor, $pdf_cav);
 		echo $resp['codigo'];
 	}
 
-	public function reescalamiento($valor, $comen, $pdf_cav){
+	public function reescalamiento($valor, $comen, $pdf_cav, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord){
 		$resp = self::$db->GuardarEscalamiento($valor);
-		$resp2 = self::$db->reescalamientoEdita($valor, $comen);
+		$resp2 = self::$db->reescalamientoEdita($valor, $comen, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		if( ! empty( $fech_comp_ord ) ){
+			self::$db->addBitacoraFechCompOrd($valor, $fech_comp_ord, $horas_comp_ord, $minutos_comp_ord);
+		}	
 		self::$db->guarda_pdf($valor, $pdf_cav);
 		echo $resp['codigo'];
 	}
@@ -1215,7 +1239,6 @@ class clasFunciones extends Meta{
 		echo $resp['TOTAL'][0];
 	}		
 	
-	/*
 	public function mant_base($mod){
 		if ($mod =='mant_cav'){
 			$titulo = 'CAV';
@@ -1318,7 +1341,7 @@ class clasFunciones extends Meta{
 		
 		<?		
 	}	
-*/
+
 	public function get_listaRegistros($datos){
 		$listServ = self::$db->selectUsusarioCav($datos); 	
 		
@@ -1380,20 +1403,18 @@ class clasFunciones extends Meta{
 	public function enviaCorreo($norden){
 		$mailCreador = self::$db->getMailCreador($norden);
 		
-		//$mailCreador[0][0] = "cencina@sys.cl";
-		//$mailAsignado[0][0] = "cencina@sys.cl";
+		/*$mailCreador[0][0] = "cencina@sys.cl";
+		$mailAsignado[0][0] = "cencina@sys.cl";
+		$mailJefe[0][0] = "cencina@sys.cl";
+		$mailEps[0][0] = "cencina@sys.cl";*/
+		$datos = self::$db->getDatosMail($norden);
 		$mailCreador = self::$db->getMailCreador($norden);
 		$mailAsignado = self::$db->getMailAsignado($norden);
-		$mailJefe[0][0] = "cencina@sys.cl";
-		$mailEps[0][0] = "cencina@sys.cl";
-		$datos = self::$db->getDatosMail($norden);
-		//$mailCreador = self::$db->getMailCreador($norden);
-		//$mailAsignado = self::$db->getMailAsignado($norden);
-		//$mailJefe = self::$db->getMailJefe($norden);
-		//$mailEps = self::$db->getMailEps($norden);
+		$mailJefe = self::$db->getMailJefe($norden);
+		$mailEps = self::$db->getMailEps($norden);
 
 		//var_dump($datos);die;
-		$array = array($mailCreador['EMAIL'][0], $mailAsignado['EMAIL'][0], $mailJefe[0][0], $mailEps[0][0]);
+		$array = array($mailCreador[0][0], $mailAsignado[0][0], '', '');
 		$mailSeparado = implode(",", $array);
         $explode_mail_destino=explode(',',$mailSeparado);
       
@@ -1424,11 +1445,9 @@ class clasFunciones extends Meta{
 		
 		$cuerpo = "El escalamiento N. ".$datos['ID_ESCALAMIENTO'][0]." fue escalado correctamente y se encuentra en estado ".$datos['DESCRIPCION'][0]."<br>Los datos de la Orden son: <br><br>Nombre Cliente: ".$datos['NOMBRE_CLIENTE'][0]."<br>Rut Cliente: ".$datos['RUT_PERSONA'][0]."<br>Direccion: ".$datos['DIRECCION'][0]."<br>Localidad: ".$datos['LOCALIDAD'][0]."<br>Actividad: ".$datos['ACTIVIDAD'][0]."<br>Motivo Escalamiento: ".$datos['MOTIVO'][0]."<br>Tipo de Escalamiento: ".$datos['TIPO'][0]."<br>Creador Escalamiento: ".$datos['CREADOR'][0]."<br>Fecha Creacion Escalamiento: ".$datos['FECHA_PENDIENTE'][0]."<br>Escalamiento Anulado por: ".$datos['USUARIO_ANULA'][0]."<br>Fecha Anulacion: ".$datos['FECHA_ANULA'][0]./*"<br>Fecha Finalizacion: ".$datos['FECHA_FINALIZADA'][0].*/"<br><br><br><br><b>Nota: Este e-mail es generado de manera automatica, por favor no responda a este mensaje. Asimismo, se han omitido acentos para evitar problemas de compatibilidad.</b>";	
 	//var_dump($cuerpo);die;	
-		//$remitente='nnoc.gestionescalamientos999@vtr.cl';
-		//$asunto = "Gestion Escalamiento orden N. ".$datos['NMRO_ORDEN'][0];
+		$remitente='nnoc.gestionescalamientos999@vtr.cl';
+		$asunto = "Gestion Escalamiento orden N. ".$datos['NMRO_ORDEN'][0];
 		
-		$remitente="cencina@sys.cl";
-		$asunto = "PRUEBA ESCALAMIENTO CRITICO ANULA - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
 
 		echo "<script Language='Javascript' type='text/javascript'>
 			enviaMail2('$remitente','$mail_destino', '$asunto', '$cuerpo');
@@ -1438,85 +1457,18 @@ class clasFunciones extends Meta{
 	public function enviaCorreoNuevo($id_esca){
 
 		//ESC_CRIT
-		//$esc = self::$db->getEscalaOrden($norden);
-		/*$mailCreador = self::$db->getMailCreador($esc[0][0]);
+		$esc = self::$db->getEscalaOrden($id_esca);
+		$mailCreador = self::$db->getMailCreador($esc[0][0]);
 		$mailAsignado = self::$db->getMailAsignado($esc[0][0]);
 		$mailJefe = self::$db->getMailJefe($esc[0][0]);
-		$mailEps = self::$db->getMailEps($esc[0][0]);*/
+		$mailEps = self::$db->getMailEps($esc[0][0]);
 		//var_dump($esc);die;
-		$mailCreador = "cencina@sys.cl";
-		$mailAsignado = "cencina@sys.cl";
-		$mailJefe = "cencina@sys.cl";
-		$mailEps = "cencina@sys.cl";
+		
 		$datos = self::$db->getDatosMailNuevo($id_esca);
 		//var_dump($datos);//die;
 		//ESC_CRIT
-		//$array = array($mailCreador[0][0], $mailAsignado[0][0], $mailJefe[0][0], $mailEps[0][0], 'gvaldivia@sys.cl');	
-		$array = array($mailCreador, $mailAsignado, $mailJefe, $mailEps, "cencina@sys.cl");
-		$mailSeparado = implode(",", $array);
-        $explode_mail_destino=explode(',',$mailSeparado);
-        
-        $i=0;
-        $sw=0;
-        $k=0;
-        while ($i<count($explode_mail_destino)){
-               $j=$i+1;
-               while (($j)<count($explode_mail_destino)){
-                      if ($explode_mail_destino[$i]==$explode_mail_destino[$j]){
-                            $sw=1;
-                      }
-                      $j++;
-               }
-               if ($sw==0){
-                      $temp_mail.=$explode_mail_destino[$i].',';
-                      $direcciones[$k]=$explode_mail_destino[$i];
-                      $k++;
-               }
-               $i++;
-               $sw=0;
-        }
-        $temp_mail=substr($temp_mail,0,strlen($temp_mail)-1);
-
-        //$mail_destino=$temp_mail;
-        $mail_destino="cencina@sys.cl";
-        //$mail_destino="elias.gonzalez@vtr.cl";
-        //$mail_destino="rodrigo.mendoza@vtr.cl";
-		
-
-		$cuerpo = "El Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0]." fue escalado correctamente y se encuentra en estado ".$datos['DESCRIPCION'][0]."<br>Los datos de la Orden son: <br><br>Nombre Cliente: ".$datos['NOMBRE_CLIENTE'][0]."<br>Rut Cliente: ".$datos['RUT_PERSONA'][0]."<br>Direccion: ".$datos['DIRECCION'][0]."<br>Localidad: ".$datos['LOCALIDAD'][0]."<br>Actividad: ".$datos['ACTIVIDAD'][0]."<br>Motivo Escalamiento: ".$datos['MOTIVO'][0]."<br>Tipo de Escalamiento: ".$datos['TIPO'][0]."<br>Creador Escalamiento: ".$datos['CREADOR'][0]."<br>Fecha Creacion Escalamiento: ".$datos['FECHA_PENDIENTE'][0]."<br><br><br><br><b>Nota: Este e-mail es generado de manera automatica, por favor no responda a este mensaje. Asimismo, se han omitido acentos para evitar problemas de compatibilidad.</b>";	
-		
-		//$remitente='nnoc.gestionescalamientos@vtr.cl';
-		$remitente="cencina@sys.cl";
-		$asunto = "PRUEBA ESCALAMIENTO CRITICO PENDIENTE - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
-		
-		echo "<script Language='Javascript' type='text/javascript'>enviaMail('$remitente','$mail_destino', '$asunto', '$cuerpo');</script>";
-	}
-
-	public function enviaCorreoPend($RUTP, $DIRE, $TI_ESC, $MOTI_ESC){
-
-		//ESC_CRIT
-		//$esc = self::$db->getEscalaOrden($norden);
-		/*$mailCreador = self::$db->getMailCreador($esc[0][0]);
-		$mailAsignado = self::$db->getMailAsignado($esc[0][0]);
-		$mailJefe = self::$db->getMailJefe($esc[0][0]);
-		$mailEps = self::$db->getMailEps($esc[0][0]);*/
-		//var_dump($esc);die;
-		//$mailCreador = "cencina@sys.cl";
-		$mailAsignado = "cencina@sys.cl";
-		$id_escal = self::$db->getDatosIdEscal($RUTP, $DIRE, $TI_ESC, $MOTI_ESC);
-		$mailCreador = self::$db->getMailCreador($id_escal['ID_ESCALAMIENTO'][0]);
-		//var_dump($mailCreador);
-		//$mailAsignado = self::$db->getMailAsignado($id_escal['ID_ESCALAMIENTO'][0]);
-		//var_dump($mailAsignado);
-		$mailJefe = "cencina@sys.cl";
-		$mailEps = "cencina@sys.cl";
-		
-		//var_dump($id_escal['ID_ESCALAMIENTO'][0]);
-		$datos = self::$db->getDatosMailNuevo($id_escal['ID_ESCALAMIENTO'][0]);
-		//var_dump($datos);//die;
-		//ESC_CRIT
-		//$array = array($mailCreador[0][0], $mailAsignado[0][0], $mailJefe[0][0], $mailEps[0][0], 'gvaldivia@sys.cl');	
-		$array = array($mailCreador['EMAIL'][0]/*, $mailAsignado['EMAIL'][0]*/, $mailJefe, $mailEps);
+		$array = array($mailCreador[0][0], $mailAsignado[0][0], '', '', '');	
+		//$array = array($mailCreador, $mailAsignado, $mailJefe, $mailEps, "cencina@sys.cl");
 		$mailSeparado = implode(",", $array);
         $explode_mail_destino=explode(',',$mailSeparado);
         
@@ -1542,7 +1494,6 @@ class clasFunciones extends Meta{
         $temp_mail=substr($temp_mail,0,strlen($temp_mail)-1);
 
         $mail_destino=$temp_mail;
-		//var_dump($mail_destino);die;
         //$mail_destino="cencina@sys.cl";
         //$mail_destino="elias.gonzalez@vtr.cl";
         //$mail_destino="rodrigo.mendoza@vtr.cl";
@@ -1550,9 +1501,71 @@ class clasFunciones extends Meta{
 
 		$cuerpo = "El Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0]." fue escalado correctamente y se encuentra en estado ".$datos['DESCRIPCION'][0]."<br>Los datos de la Orden son: <br><br>Nombre Cliente: ".$datos['NOMBRE_CLIENTE'][0]."<br>Rut Cliente: ".$datos['RUT_PERSONA'][0]."<br>Direccion: ".$datos['DIRECCION'][0]."<br>Localidad: ".$datos['LOCALIDAD'][0]."<br>Actividad: ".$datos['ACTIVIDAD'][0]."<br>Motivo Escalamiento: ".$datos['MOTIVO'][0]."<br>Tipo de Escalamiento: ".$datos['TIPO'][0]."<br>Creador Escalamiento: ".$datos['CREADOR'][0]."<br>Fecha Creacion Escalamiento: ".$datos['FECHA_PENDIENTE'][0]."<br><br><br><br><b>Nota: Este e-mail es generado de manera automatica, por favor no responda a este mensaje. Asimismo, se han omitido acentos para evitar problemas de compatibilidad.</b>";	
 		
-		//$remitente='nnoc.gestionescalamientos@vtr.cl';
-		$remitente="cencina@sys.cl";
-		$asunto = "PRUEBA ESCALAMIENTO CRITICO PENDIENTE NUEVO - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
+		$remitente='nnoc.gestionescalamientos@vtr.cl';
+		//$remitente="cencina@sys.cl";
+		$asunto = "ESCALAMIENTO CRITICO PENDIENTE - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
+		
+		echo "<script Language='Javascript' type='text/javascript'>enviaMail('$remitente','$mail_destino', '$asunto', '$cuerpo');</script>";
+	}
+
+	public function enviaCorreoPend($RUTP, $DIRE, $TI_ESC, $MOTI_ESC){
+
+		//ESC_CRIT
+		$id_escal = self::$db->getDatosIdEscal($RUTP, $DIRE, $TI_ESC, $MOTI_ESC);
+		$mailCreador = self::$db->getMailCreador($id_escal['ID_ESCALAMIENTO'][0]);
+		$mailAsignado = self::$db->getMailAsignado($id_escal['ID_ESCALAMIENTO'][0]);
+		$mailJefe = self::$db->getMailJefe($id_escal['ID_ESCALAMIENTO'][0]);
+		$mailEps = self::$db->getMailEps($id_escal['ID_ESCALAMIENTO'][0]);
+		//var_dump($esc);die;
+		/*$mailCreador = "cencina@sys.cl";
+		$mailAsignado = "cencina@sys.cl";
+		$mailJefe = "cencina@sys.cl";
+		$mailEps = "cencina@sys.cl";*/
+		$id_escal = self::$db->getDatosIdEscal($RUTP, $DIRE, $TI_ESC, $MOTI_ESC);
+		//var_dump($id_escal['ID_ESCALAMIENTO'][0]);
+		$datos = self::$db->getDatosMailNuevo($id_escal['ID_ESCALAMIENTO'][0]);
+	
+		//var_dump($datos);//die;
+		//ESC_CRIT
+		$array = array($mailCreador[0][0], $mailAsignado[0][0], '', '', '');	
+		//$array = array($mailCreador, $mailAsignado, $mailJefe, $mailEps, "cencina@sys.cl");
+		$mailSeparado = implode(",", $array);
+		
+		
+        $explode_mail_destino=explode(',',$mailSeparado);
+        
+        $i=0;
+        $sw=0;
+        $k=0;
+        while ($i<count($explode_mail_destino)){
+               $j=$i+1;
+               while (($j)<count($explode_mail_destino)){
+                      if ($explode_mail_destino[$i]==$explode_mail_destino[$j]){
+                            $sw=1;
+                      }
+                      $j++;
+               }
+               if ($sw==0){
+                      $temp_mail.=$explode_mail_destino[$i].',';
+                      $direcciones[$k]=$explode_mail_destino[$i];
+                      $k++;
+               }
+               $i++;
+               $sw=0;
+        }
+        $temp_mail=substr($temp_mail,0,strlen($temp_mail)-1);
+
+        $mail_destino=$temp_mail;
+        //$mail_destino="cencina@sys.cl";
+        //$mail_destino="elias.gonzalez@vtr.cl";
+        //$mail_destino="rodrigo.mendoza@vtr.cl";
+		echo $mail_destino;
+
+		$cuerpo = "El Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0]." fue escalado correctamente y se encuentra en estado ".$datos['DESCRIPCION'][0]."<br>Los datos de la Orden son: <br><br>Nombre Cliente: ".$datos['NOMBRE_CLIENTE'][0]."<br>Rut Cliente: ".$datos['RUT_PERSONA'][0]."<br>Direccion: ".$datos['DIRECCION'][0]."<br>Localidad: ".$datos['LOCALIDAD'][0]."<br>Actividad: ".$datos['ACTIVIDAD'][0]."<br>Motivo Escalamiento: ".$datos['MOTIVO'][0]."<br>Tipo de Escalamiento: ".$datos['TIPO'][0]."<br>Creador Escalamiento: ".$datos['CREADOR'][0]."<br>Fecha Creacion Escalamiento: ".$datos['FECHA_PENDIENTE'][0]."<br><br><br><br><b>Nota: Este e-mail es generado de manera automatica, por favor no responda a este mensaje. Asimismo, se han omitido acentos para evitar problemas de compatibilidad.</b>";	
+		
+		$remitente='nnoc.gestionescalamientos@vtr.cl';
+		//$remitente="cencina@sys.cl";
+		$asunto = "ESCALAMIENTO CRITICO PENDIENTE NUEVO - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
 		
 		echo "<script Language='Javascript' type='text/javascript'>enviaMail('$remitente','$mail_destino', '$asunto', '$cuerpo');</script>";
 	}
@@ -1560,23 +1573,21 @@ class clasFunciones extends Meta{
 	public function enviaCorreoAsig($id_esca){
 
 		//ESC_CRIT
-		//$esc = self::$db->getEscalaOrden($norden);
-		/*$mailCreador = self::$db->getMailCreador($esc[0][0]);
+		$esc = self::$db->getEscalaOrden($id_esca);
+		$mailCreador = self::$db->getMailCreador($esc[0][0]);
 		$mailAsignado = self::$db->getMailAsignado($esc[0][0]);
 		$mailJefe = self::$db->getMailJefe($esc[0][0]);
-		$mailEps = self::$db->getMailEps($esc[0][0]);*/
+		$mailEps = self::$db->getMailEps($esc[0][0]);
 		//var_dump($esc);die;
-		//$mailCreador = "cencina@sys.cl";
-		//$mailAsignado = "cencina@sys.cl";
-		$mailCreador = self::$db->getMailCreador($id_esca);
-		$mailAsignado = self::$db->getMailAsignado($id_esca);
+		/*$mailCreador = "cencina@sys.cl";
+		$mailAsignado = "cencina@sys.cl";
 		$mailJefe = "cencina@sys.cl";
-		$mailEps = "cencina@sys.cl";
+		$mailEps = "cencina@sys.cl";*/
 		$datos = self::$db->getDatosMailAsig($id_esca);
 		//var_dump($datos);//die;
 		//ESC_CRIT
-		//$array = array($mailCreador[0][0], $mailAsignado[0][0], $mailJefe[0][0], $mailEps[0][0], 'gvaldivia@sys.cl');	
-		$array = array($mailCreador['EMAIL'][0], $mailAsignado['EMAIL'][0], $mailJefe, $mailEps);
+		$array = array($mailCreador[0][0], $mailAsignado[0][0], '', '', '');	
+		//$array = array($mailCreador, $mailAsignado, $mailJefe, $mailEps, "cencina@sys.cl");
 		$mailSeparado = implode(",", $array);
         $explode_mail_destino=explode(',',$mailSeparado);
         
@@ -1608,9 +1619,9 @@ class clasFunciones extends Meta{
 		
 		$cuerpo = "El Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0]." fue escalado correctamente y se encuentra en estado ".$datos['DESCRIPCION'][0]."<br>Los datos de la Orden son: <br><br>Nombre Cliente: ".$datos['NOMBRE_CLIENTE'][0]."<br>Rut Cliente: ".$datos['RUT_PERSONA'][0]."<br>Direccion: ".$datos['DIRECCION'][0]."<br>Localidad: ".$datos['LOCALIDAD'][0]."<br>Actividad: ".$datos['ACTIVIDAD'][0]."<br>Motivo Escalamiento: ".$datos['MOTIVO'][0]."<br>Tipo de Escalamiento: ".$datos['TIPO'][0]."<br>Creador Escalamiento: ".$datos['CREADOR'][0]."<br>Fecha Creacion Escalamiento: ".$datos['FECHA_PENDIENTE'][0]."<br>Escalamiento Asignado a: ".$datos['ASIGNADO'][0]."<br>Fecha Asignacion: ".$datos['FECHA_EJECUCION'][0]."<br><br><br><br><b>Nota: Este e-mail es generado de manera automatica, por favor no responda a este mensaje. Asimismo, se han omitido acentos para evitar problemas de compatibilidad.</b>";	
 		
-		//$remitente='nnoc.gestionescalamientos@vtr.cl';
-		$remitente="cencina@sys.cl";
-		$asunto = "PRUEBA ESCALAMIENTO CRITICO ASIGNACION - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
+		$remitente='nnoc.gestionescalamientos@vtr.cl';
+		//$remitente="cencina@sys.cl";
+		$asunto = "ESCALAMIENTO CRITICO ASIGNACION - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
 		
 		echo "<script Language='Javascript' type='text/javascript'>enviaMail('$remitente','$mail_destino', '$asunto', '$cuerpo');</script>";
 	}	
@@ -1618,23 +1629,21 @@ class clasFunciones extends Meta{
 	public function enviaCorreoEjec($id_esca){
 
 		//ESC_CRIT
-		//$esc = self::$db->getEscalaOrden($norden);
-		/*$mailCreador = self::$db->getMailCreador($esc[0][0]);
+		$esc = self::$db->getEscalaOrden($id_esca);
+		$mailCreador = self::$db->getMailCreador($esc[0][0]);
 		$mailAsignado = self::$db->getMailAsignado($esc[0][0]);
 		$mailJefe = self::$db->getMailJefe($esc[0][0]);
-		$mailEps = self::$db->getMailEps($esc[0][0]);*/
+		$mailEps = self::$db->getMailEps($esc[0][0]);
 		//var_dump($esc);die;
-		//$mailCreador = "cencina@sys.cl";
-		//$mailAsignado = "cencina@sys.cl";
-		$mailCreador = self::$db->getMailCreador($id_esca);
-		$mailAsignado = self::$db->getMailAsignado($id_esca);
+		/*$mailCreador = "cencina@sys.cl";
+		$mailAsignado = "cencina@sys.cl";
 		$mailJefe = "cencina@sys.cl";
-		$mailEps = "cencina@sys.cl";
+		$mailEps = "cencina@sys.cl";*/
 		$datos = self::$db->getDatosMailAsig($id_esca);
 		//var_dump($datos);//die;
 		//ESC_CRIT
-		//$array = array($mailCreador[0][0], $mailAsignado[0][0], $mailJefe[0][0], $mailEps[0][0], 'gvaldivia@sys.cl');	
-		$array = array($mailCreador['EMAIL'][0], $mailAsignado['EMAIL'][0], $mailJefe, $mailEps);
+		$array = array($mailCreador[0][0], $mailAsignado[0][0], '', '', '');	
+		//$array = array($mailCreador, $mailAsignado, $mailJefe, $mailEps, "cencina@sys.cl");
 		$mailSeparado = implode(",", $array);
         $explode_mail_destino=explode(',',$mailSeparado);
         
@@ -1667,9 +1676,9 @@ class clasFunciones extends Meta{
 
 		$cuerpo = "El Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0]." fue escalado correctamente y se encuentra en estado ".$datos['DESCRIPCION'][0]."<br>Los datos de la Orden son: <br><br>Nombre Cliente: ".$datos['NOMBRE_CLIENTE'][0]."<br>Rut Cliente: ".$datos['RUT_PERSONA'][0]."<br>Direccion: ".$datos['DIRECCION'][0]."<br>Localidad: ".$datos['LOCALIDAD'][0]."<br>Actividad: ".$datos['ACTIVIDAD'][0]."<br>Motivo Escalamiento: ".$datos['MOTIVO'][0]."<br>Tipo de Escalamiento: ".$datos['TIPO'][0]."<br>Creador Escalamiento: ".$datos['CREADOR'][0]."<br>Fecha Creacion Escalamiento: ".$datos['FECHA_PENDIENTE'][0]."<br>Escalamiento Asignado a: ".$datos['ASIGNADO'][0]."<br>Fecha Asignacion: ".$datos['FECHA_EJECUCION'][0]./*"<br>Fecha Finalizacion: ".$datos['FECHA_FINALIZADA'][0].*/"<br><br><br><br><b>Nota: Este e-mail es generado de manera automatica, por favor no responda a este mensaje. Asimismo, se han omitido acentos para evitar problemas de compatibilidad.</b>";	
 		
-		//$remitente='nnoc.gestionescalamientos@vtr.cl';
-		$remitente="cencina@sys.cl";
-		$asunto = "PRUEBA ESCALAMIENTO CRITICO EJECUCION - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
+		$remitente='nnoc.gestionescalamientos@vtr.cl';
+		//$remitente="cencina@sys.cl";
+		$asunto = "ESCALAMIENTO CRITICO EJECUCION - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
 		
 		echo "<script Language='Javascript' type='text/javascript'>enviaMail('$remitente','$mail_destino', '$asunto', '$cuerpo');</script>";
 	}	
@@ -1677,23 +1686,21 @@ class clasFunciones extends Meta{
 	public function enviaCorreoFinal($id_esca){
 
 		//ESC_CRIT
-		//$esc = self::$db->getEscalaOrden($norden);
-		/*$mailCreador = self::$db->getMailCreador($esc[0][0]);
+		$esc = self::$db->getEscalaOrden($id_esca);
+		$mailCreador = self::$db->getMailCreador($esc[0][0]);
 		$mailAsignado = self::$db->getMailAsignado($esc[0][0]);
 		$mailJefe = self::$db->getMailJefe($esc[0][0]);
-		$mailEps = self::$db->getMailEps($esc[0][0]);*/
+		$mailEps = self::$db->getMailEps($esc[0][0]);
 		//var_dump($esc);die;
-		//$mailCreador = "cencina@sys.cl";
-		//$mailAsignado = "cencina@sys.cl";
-		$mailCreador = self::$db->getMailCreador($id_esca);
-		$mailAsignado = self::$db->getMailAsignado($id_esca);
+		/*$mailCreador = "cencina@sys.cl";
+		$mailAsignado = "cencina@sys.cl";
 		$mailJefe = "cencina@sys.cl";
-		$mailEps = "cencina@sys.cl";
+		$mailEps = "cencina@sys.cl";*/
 		$datos = self::$db->getDatosMailAsig($id_esca);
 		//var_dump($datos);//die;
 		//ESC_CRIT
-		//$array = array($mailCreador[0][0], $mailAsignado[0][0], $mailJefe[0][0], $mailEps[0][0], 'gvaldivia@sys.cl');	
-		$array = array($mailCreador['EMAIL'][0], $mailAsignado['EMAIL'][0], $mailJefe, $mailEps);
+		$array = array($mailCreador[0][0], $mailAsignado[0][0], '', '', '');	
+		//$array = array($mailCreador, $mailAsignado, $mailJefe, $mailEps, "cencina@sys.cl");
 		$mailSeparado = implode(",", $array);
         $explode_mail_destino=explode(',',$mailSeparado);
         
@@ -1726,9 +1733,9 @@ class clasFunciones extends Meta{
 
 		$cuerpo = "El Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0]." fue escalado correctamente y se encuentra en estado ".$datos['DESCRIPCION'][0]."<br>Los datos de la Orden son: <br><br>Nombre Cliente: ".$datos['NOMBRE_CLIENTE'][0]."<br>Rut Cliente: ".$datos['RUT_PERSONA'][0]."<br>Direccion: ".$datos['DIRECCION'][0]."<br>Localidad: ".$datos['LOCALIDAD'][0]."<br>Actividad: ".$datos['ACTIVIDAD'][0]."<br>Motivo Escalamiento: ".$datos['MOTIVO'][0]."<br>Tipo de Escalamiento: ".$datos['TIPO'][0]."<br>Creador Escalamiento: ".$datos['CREADOR'][0]."<br>Fecha Creacion Escalamiento: ".$datos['FECHA_PENDIENTE'][0]."<br>Escalamiento Asignado a: ".$datos['ASIGNADO'][0]."<br>Fecha Asignacion: ".$datos['FECHA_EJECUCION'][0]."<br>Fecha Finalizacion: ".$datos['FECHA_FINALIZADA'][0]."<br><br><br><br><b>Nota: Este e-mail es generado de manera automatica, por favor no responda a este mensaje. Asimismo, se han omitido acentos para evitar problemas de compatibilidad.</b>";	
 		
-		//$remitente='nnoc.gestionescalamientos@vtr.cl';
-		$remitente="cencina@sys.cl";
-		$asunto = "PRUEBA ESCALAMIENTO CRITICO FINALIZACION - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
+		$remitente='nnoc.gestionescalamientos@vtr.cl';
+		//$remitente="cencina@sys.cl";
+		$asunto = "ESCALAMIENTO CRITICO FINALIZACION - Gestion Escalamiento N. ".$datos['ID_ESCALAMIENTO'][0];
 		
 		echo "<script Language='Javascript' type='text/javascript'>enviaMail('$remitente','$mail_destino', '$asunto', '$cuerpo');</script>";
 	}
@@ -1736,6 +1743,7 @@ class clasFunciones extends Meta{
 	public function form_OrdenFinalizada($valor){
 		$resp = self::$db->getOrdenFinalizada($valor);
 		$coment = self::$db->getComentarios($valor);
+		$bitacora = self::$db->getBitacoraFechCompOrd( $valor );
 	?>
 		<form name="formulario6" id="formulario6">
 				<div id="div_VerOrden">
@@ -1789,6 +1797,16 @@ class clasFunciones extends Meta{
 					            <td width='20%' valign='top'><?=self::inputText(array("name"=>"activ", "value"=>$resp['FECHA_EJECUCION'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
 					    		<td width='20%' valign='top'><div class="titulo">Fecha Finalizacion</div></td>
 					            <td width='20%'><?=self::inputText(array("name"=>"obserori", "value"=>$resp['FECHA_FINALIZADA'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>		          
+							</tr>
+							<tr>
+								<td width='20%' valign='top'><div class="titulo">Fecha Compromiso Orden</div></td>
+								<td width='20%' valign='top'>
+									<?=self::inputText(array("name"=>"fech_comp_ord", "value"=>$resp['FECH_COMP_ORD'][0],"class"=>"ui-state-default", "readonly"=>"true"))?>
+								</td>
+								<td width='20%' valign='top'><div class="titulo">Numero Orden Tango</div></td>
+								<td width='20%' valign='top'>
+									<?=self::inputText(array("name"=>"numero_orden_tango", "value"=>$resp['NUMERO_ORDEN_TANGO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?>
+								</td>
 							</tr>
 							<tr>
 								<td width='20%' valign='top'><div class="titulo">Observacion</div></td>
@@ -1808,10 +1826,15 @@ class clasFunciones extends Meta{
 					<h3><a href="#"><div align="left"><b>Ver Comentarios Anteriores</b></div></a></h3>
 					<div id="ver_orden"><?=parent::listaHtml($coment, $params)?></div>
 				</div>
+				<div id="div_VerBitacora">
+					<h3><a href="#"><div align="left"><b>Ver Bitacora</b></div></a></h3>
+					<div id="ver_orden"><?=parent::listaHtml($bitacora, $params)?></div>
+				</div>
 		</form>
 		<script type="text/javascript">
 	        $("#div_VerOrden").accordion({ collapsible: true,autoHeight: false   });
 	        $("#div_VerComentario").accordion({ collapsible: true,autoHeight: false   });
+	        $("#div_VerBitacora").accordion({ collapsible: true,autoHeight: false   });
 		</script>
 	<? 
 	}
@@ -1819,6 +1842,7 @@ class clasFunciones extends Meta{
 	public function form_OrdenFinalizadaMortem($valor){
 		$resp = self::$db->getOrdenFinalizada($valor);
 		$coment = self::$db->getComentarios($valor);
+		$bitacora = self::$db->getBitacoraFechCompOrd( $valor );
 	?>
 		<form name="formulario6" id="formulario6">
 				<div id="div_VerOrden">
@@ -1874,6 +1898,16 @@ class clasFunciones extends Meta{
 					            <td width='20%'><?=self::inputText(array("name"=>"obserori", "value"=>$resp['FECHA_FINALIZADA'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>		          
 							</tr>
 							<tr>
+								<td width='20%' valign='top'><div class="titulo">Fecha Compromiso Orden</div></td>
+								<td width='20%' valign='top'>
+									<?=self::inputText(array("name"=>"fech_comp_ord", "value"=>$resp['FECH_COMP_ORD'][0],"class"=>"ui-state-default", "readonly"=>"true"))?>
+								</td>
+								<td width='20%' valign='top'><div class="titulo">Numero Orden Tango</div></td>
+								<td width='20%' valign='top'>
+									<?=self::inputText(array("name"=>"numero_orden_tango", "value"=>$resp['NUMERO_ORDEN_TANGO'][0],"class"=>"ui-state-default", "readonly"=>"true"))?>
+								</td>
+							</tr>
+							<tr>
 								<td width='20%' valign='top'><div class="titulo">Post Mortem</div></td>
 					            <td width='20%' valign='top'><?=self::inputTextArea(array("name"=>"activ", "value"=>$resp['POST_MORTEM'][0],"class"=>"ui-state-default", "readonly"=>"true"))?></td>
 					    		<td width='20%' valign='top'><div class="titulo">Acciones Preventivas</div></td>
@@ -1890,12 +1924,17 @@ class clasFunciones extends Meta{
 					<h3><a href="#"><div align="left"><b>Ver Comentarios Anteriores</b></div></a></h3>
 					<div id="ver_orden"><?=parent::listaHtml($coment, $params)?></div>
 				</div>
+				<div id="div_VerBitacora">
+					<h3><a href="#"><div align="left"><b>Ver Bitacora</b></div></a></h3>
+					<div id="ver_orden"><?=parent::listaHtml($bitacora, $params)?></div>
+				</div>
 
 		</form>
 		<script type="text/javascript">
 	        $("#div_VerOrden").accordion({ collapsible: true,autoHeight: false   });
 	        $("#PostMortem").accordion({ collapsible: true,autoHeight: false   });
 	        $("#div_VerComentario").accordion({ collapsible: true,autoHeight: false   });
+	        $("#div_VerBitacora").accordion({ collapsible: true,autoHeight: false   });
 		</script>
 	<? 
 	}
@@ -1907,7 +1946,7 @@ class clasFunciones extends Meta{
 	}
 	
 	public function form_reporte($terr, $reg, $loc, $escala, $eps, $fpenDesde, $fpenHasta, $actividad){
-		$fpenDesde = ($fpenDesde == '') ? date('d/m/Y', strtotime( "- 1 days" )) : $fpenDesde ;
+		$fpenDesde = ($fpenDesde == '') ? date('d/m/Y', strtotime( "- 365 days" )) : $fpenDesde ;
 		$fpenHasta = ($fpenHasta == '') ? date('d/m/Y') : $fpenHasta ;
 		//$todosEstado = self::$db->cuentaEstados($terr, $reg, $loc, $escala, $eps, $fpenDesde, $fpenHasta);
 		$todosEstado = self::$db->cuentaEstados1($terr, $reg, $loc, $escala, $eps, $fpenDesde, $fpenHasta, $actividad);
@@ -2233,12 +2272,12 @@ class clasFunciones extends Meta{
 	}
 	
 	public function VerOrdenesFinaliza($escala, $terr, $reg, $localidad, $empresa, $fdesde, $fhasta){
-		$fpenDesde = ($fdesde == '') ? date('d/m/Y', strtotime( "- 1 days" )) : $fdesde ;
-		$fpenHasta = ($fdasta == '') ? date('d/m/Y') : $fhasta ;
+		$fpenDesde = ($fdesde == '') ? date('d/m/Y', strtotime( "- 365 days" )) : $fdesde ;
+		$fpenHasta = ($fhasta == '') ? date('d/m/Y') : $fhasta ;
 		$permiso = self::$db->permisoUsuario($_SESSION[user][id]);
 		$fina = self::$db->BuscarOrdenFinaF($escala, $terr, $reg, $localidad, $empresa, $fpenDesde, $fpenHasta);
 
-		$precer = self::$db->BuscarOrdenPrecer($escala, $terr, $reg, $localidad);
+		$precer = self::$db->BuscarOrdenPrecer($escala, $terr, $reg, $localidad, $fpenDesde, $fpenHasta);
 
 		for ($i=0; $i < count($fina['ID_ESCALAMIENTO']); $i++) { 
 
@@ -2332,32 +2371,33 @@ class clasFunciones extends Meta{
 				<div id="Filtros">
 					<h3><a href="#"><div align="left"><b>Filtros</b></div></a></h3>
 					<div>
-						<table>
+						<table width="100%">
 						<tr>
 							<td width='40%'>Ingrese Territorio:</td>
-							<td width='40%'>Ingrese Region:</td>
 							<td width='40%'>Ingrese Comuna:</td>
+							<!-- <td width='40%'>Ingrese Area:</td> -->
 						</tr>
 						<tr>
 							<td><div id="div_territorio"><?=self::multiple2(self::$db->getTerritorio(),array( "name"=>"Fterritorio", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selTerritorioF();", "default"=>$terr ))?></div></td>
-							<td><div id="div_region"><?=self::multiple2(self::$db->getRegion($terr),array( "name"=>"Fregion", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selRegionF();", "default"=>$reg ))?></div></td>
 							<td><div id="div_comuna"><?=self::multiple2(self::$db->getComuna($terr, $reg),array( "name"=>"Fcomuna", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selLocalidadF();", "default"=>$loc ))?></div></td>
+							<!-- <td><?=self::multiple2(self::$db->getEscalamientos(),array( "name"=>"Fescalamientos", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selEscalaF();", "default"=>$escala ))?></td> -->
 						</tr>
 						<tr><td><br /></td></tr>
-						<tr>	
-							<td width='40%'>Ingrese Area:</td>
+						<!--<tr>	
 							<td width='40%'>Ingrese Empresa:</td>
 							<td></td>
-						</tr>
-						<tr>	
-							<td><?=self::multiple2(self::$db->getEscalamientos(),array( "name"=>"Fescalamientos", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selEscalaF();", "default"=>$escala ))?></td>
-							<td><?=self::multiple2(self::$db->getEmpresa(),array( "name"=>"Fempresa", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selEmpresaF();", "default"=>$empresa ))?></td>
 							<td></td>
 						</tr>
+						<tr>	
+							<td><?=self::multiple2(self::$db->getEmpresa(),array( "name"=>"Fempresa", "size"=>"5", "width"=>"300px","onChange"=>"javascript:selEmpresaF();", "default"=>$empresa ))?></td>
+							<td></td>
+							
+						</tr> -->
 						<tr><td><br /></td></tr>
 						<tr>
 							<td width='40%'>Ingrese Fecha Escalamiento:</td>	
 							<td><?php echo parent::inputFecha("FfechaDesde", array("onChange"=>"javascript:selTerritorioF();", "value"=>$fpenDesde ))?><?php echo parent::inputFecha("FfechaHasta", array("onChange"=>"javascript:selTerritorioF();", "value"=>$fpenHasta))?></td>
+							<td>&nbsp;</td>
 						</tr>
 					</table>
 					</div>		
@@ -2387,175 +2427,167 @@ class clasFunciones extends Meta{
 	<?	
 	}	
 	
-	public function form_gestion(){
-	?>
-		<form name="formulario1" id="formulario1">
-				<div id="inicioPeticionEscala">
-					<h3><a href="#"><div align="left"><b>Ingrese Datos del Escalamiento</b></div></a></h3>
-					<div id="tabinicio">
-					<table width="100%" >
-	                	<tr>
-	                        <td width='5%'><div class="titulo">Ingrese ID de Escalamiento</div></td>
-	                        <td width='20%'><?=self::inputText(array("name"=>"valor_escalamiento","class"=>"ui-state-default"))?>Para ingresar mas de un ID, separelos por coma (,)</td>
-	                    </tr>
-	                    <tr>
-	                    	<td></td>
-	                        <td><input type="button" name="buscar" value="Buscar" onclick="buscarEscalamiento();" /></td>
-	                    </tr>
-                    </table>    	
-					</div>
-				</div>
-				<div id="respuestaPeticionEscala">
-					<h3><a href="#"><div align="left"><b>Datos del Escalamiento</b></div></a></h3>
-					<div id="resp_orden"></div>
-				</div>
-			
-		</form>
-		<script type="text/javascript">
-        $("#inicioPeticionEscala").accordion({ collapsible: true,autoHeight: false   });
-        $("#OrdenesPrecerradas").accordion({ collapsible: true,autoHeight: false   });
-        $("#respuestaPeticionEscala").accordion({ collapsible: true,autoHeight: false  });
-	</script>		
-	<?	
-	}	
-	
-	public function BuscarEscalamiento($valor){
-		$resp = self::$db->BuscarOrdenEscalamiento($valor);
-			$tabla = array( "firstColumnId"=>true, "showFirstColumn"=>true, "style"=>"width:100%" );
-			for ($i=0; $i < count($resp['Numero Orden']); $i++) { 
-				$resp['Estado1'][$i] = "<select id='estadoCerrar_".$resp['ID Escalamiento'][$i]."' onchange='CerrarEscalamiento(".$resp['ID Escalamiento'][$i].")'><option>Seleccione...</option><option value='3'>Finalizar</option><option value='4'>Anular</option></select>";
-			}
-			$params["tr"] = array("onMouseOver"=>"$(this).addClass('ui-state-active')", "onMouseOut"=>"$(this).removeClass('ui-state-active')","onClick"=>"");
-			$params['acciones'] = $acciones;
-			$params['tabla'] = $tabla;
-			echo parent::listaHtml($resp, $params);
-	}	
-	
 	public function estadoCerrarEscalamiento($valor, $id){
 		$resp = self::$db->estadoCerrarEscalamiento($valor, $id);
 		echo $resp['codigo'];
 	}	
-
-//MANT
-	public function tabla_mant($cav)
-	{?>
-		<table id='tabla_mant_cav'>
+	
+	public function getFiltroListaOrden(){
+?>
+		<table align="center">
 			<tr>
-			<td valign='top'>
-				<div id='lista_mant_cav' style='width:600px; margin-top:20px;'><?echo self::lista_cav('mant_cav');?></div>
-			</td>
-		<td valign='top' style='padding: 8px 0 0 20px;'>
-			<div id='div_mant_cav'></div>
-			</td>
+				<td width='20%' class="cuadrotexto"><b>Desde</b></td>	
+				<td width='20%' class="cuadrotexto">
+					<?php echo parent::inputFecha("LfechaDesde", array( "value"=>date( 'd/m/Y', strtotime( "-7 day" ) ) ))?>
+				</td>
+				<td width='20%' class="cuadrotexto"><b>Hasta</b></td>	
+				<td width='20%' class="cuadrotexto">
+					<?php echo parent::inputFecha("LfechaHasta", array( "value"=>date( 'd/m/Y' ) ))?>
+				</td>
+				<td width='20%' class="cuadrotexto">
+					<input type="button" id="id_lista_orden" name="buscar" value="Generar Listado" onclick="buscarEscalamiento();" />
+				</td>			
+			</tr>
+		</table>
+		<div id="listado_ordenes"></div>
+		<script language="javascript">
+			$('#id_lista_orden').click();
+		</script>
+<?
+	}
+
+	public function getListaOrden( $fecha_desde, $fecha_hasta){
+		$resp = self::$db->getListadoOrdenes( $fecha_desde, $fecha_hasta );
+		for ($i=0; $i < count($resp['ID_ESCALAMIENTO']); $i++) { 
+			$minutos = $resp['SEMAFORO'][$i] % 60;
+			$horas =   round(($resp['SEMAFORO'][$i]-$minutos) / 60);
+
+			$tempHoras=$horas;
+
+			if ($horas >= 24) {	
+				$horas = $horas % 24;
+				$dias = ($tempHoras-$horas) / 24;
+				$newsemaforo[$i] = $dias.'d,'.$horas.'h:' .$minutos.'m';
+			} else {
+				$newsemaforo[$i] = $horas.'h:' .$minutos.'m';
+			}
+			
+			if ($resp['SEMAFORO'][$i] <= 30 ) {
+				$resp['SEMAFORO'][$i] = '<label style="background-color:green;color:white; font-size:13px">'.$newsemaforo[$i].'</label>';
+			} else {
+				if (($resp['SEMAFORO'][$i] >= 31 ) && ($pend['SEMAFORO'][$i] <= 60 )) {
+				$resp['SEMAFORO'][$i] = '<label style="background-color:orange;color:white; font-size:13px">'.$newsemaforo[$i].'</label>';
+				} else {	
+					if ($resp['SEMAFORO'][$i] >= 61 ) {
+						$resp['SEMAFORO'][$i] = '<label style="background-color:red;color:white; font-size:13px">'.$newsemaforo[$i].'</label>';
+					}	
+				} 
+			}
+			
+		}
+		echo "<br><p style='text-align:center;font-size:15px'><b>Listado de Ordenes desde ".$fecha_desde." hasta ".$fecha_desde."</b></p>";
+		echo parent::listaHTML( $resp );
+	}
+	
+	public function getAsignarOrden(){
+		$pend = self::$db->getListadoOrdenesPendientes();
+		for ($i=0; $i < count($pend['ID_ESCALAMIENTO']); $i++) { 
+			$minutos = $pend['SEMAFORO'][$i] % 60;
+			$horas =   round(($pend['SEMAFORO'][$i]-$minutos) / 60);
+
+			$tempHoras=$horas;
+
+			if ($horas >= 24) {	
+				$horas = $horas % 24;
+				$dias = ($tempHoras-$horas) / 24;
+				$newsemaforo[$i] = $dias.'d,'.$horas.'h:' .$minutos.'m';
+			} else {
+				$newsemaforo[$i] = $horas.'h:' .$minutos.'m';
+			}
+
+
+			$pend['ID_ESCALAMIENTO'][$i] = "<a class='tc' href='#' onClick='reAsignarOrden(".$pend['ID_ESCALAMIENTO'][$i].")'>".$pend['ID_ESCALAMIENTO'][$i]."</a>";
+			if ($pend['SEMAFORO'][$i] <= 30 ) {
+				$pend['SEMAFORO'][$i] = '<label style="background-color:green;color:white; font-size:13px">'.$newsemaforo[$i].'</label>';
+			} else {
+				if (($pend['SEMAFORO'][$i] >= 31 ) && ($pend['SEMAFORO'][$i] <= 60 )) {
+				$pend['SEMAFORO'][$i] = '<label style="background-color:orange;color:white; font-size:13px">'.$newsemaforo[$i].'</label>';
+				} else {	
+					if ($pend['SEMAFORO'][$i] >= 61 ) {
+						$pend['SEMAFORO'][$i] = '<label style="background-color:red;color:white; font-size:13px">'.$newsemaforo[$i].'</label>';
+					}	
+				} 
+			}
+		}
+		echo "<br><p style='text-align:center;font-size:15px'><b>Listado de Ordenes Pendientes</b></p>";
+		echo parent::listaHTML( $pend );
+		echo "<div id='reasignar_ordenes'></div>";
+	}
+	
+	public function getReasigarOrdenes( $id_escalamiento ){
+?>
+		<table width="100%">
+			<tr>
+				<td class="cuadrotexto" colspan="2" style="text-align:center"><b>Asignar Ordenes Pendientes</b></td>
 			</tr>
 			<tr>
-		<td>
-		<button type='button' id='cmd_mant_cav' class='boton_dest' onclick='javascript:agreReg_cav("mant_cav");'>Nuevo Usuario CAV</button>
-		<td><input type='hidden' name='xnombre' id='xnombre' value='<?echo $_SESSION[user][id]?>' ></input></td>
-						</td>
-					</tr>
-	</table>
-	<?}
-	
-	public function lista_cav($cav)
-	{
-		if($cav == 'mant_cav')	{
-			$datos = self::$db->get_UsuariosCAV();
-
-			$acciones[0] = array("label"=>"Editar","img"=>"/_includes/icons/application_edit.png","onClick"=>"editSer_cav");
-			$acciones[1] = array("label"=>"Eliminar","img"=>"/_includes/icons/delete.png","onClick"=>"quitSer_cav");
-
-		}
-		
-		if($cav == 'mant_mov'){
-			$datos = self::$db->getMovimientos();
-		}
-		 
-		$tabla = array( "firstColumnId"=>true, "showFirstColumn"=>true, "style"=>"width:100%" );
-		 
-		$params['acciones'] = $acciones;
-		$params['tabla'] = $tabla;
-		
-		return parent::listaHtml($datos, $params);
+				<td class="cuadrotexto"><b>Id Escalamiento</b></td>
+				<td class="cuadrotexto"><?=$id_escalamiento?></td>
+			</tr>
+			<tr>
+				<td class="cuadrotexto"><b>Usuario a Asignar</b></td>
+				<td class="cuadrotexto">
+					<input type="text" name="nombre_usuario" id="nombre_usuario" size="30" value="" />
+					<input type="hidden" name="id_usuario" id="id_usuario" size="30" value="<?=$id_sol?>" maxlength="30" />
+				</td>
+			</tr>
+			<tr>
+				<td class="cuadrotexto">&nbsp;</td>
+				<td class="cuadrotexto">
+					<input type="button" name="boton" id="boton" onclick="javascript:guardarAsignado( '<?=$id_escalamiento?>' )" value="Grabar Usuario Asignado" />
+				</td>
+			</tr>
+		</table>
+		<div id="guarda_asigna_orden"></div>
+		<script type="text/javascript">
+	 			$(document).ready(function() {
+		             $('#nombre_usuario').autocomplete('autocompletar_usuarios.php', {
+		             width: 400,
+		             minChars: 3,
+		             selectFirst: false,
+		             highlightItem: false
+		            });
+		             $('#nombre_usuario').result(function(event, data, formatted) { //nombre_usuario
+		             if (data) {
+		             $('#id_usuario').val(data[1]); //id_usuario
+		             $('#nombre_usuario').val(data[2]); //nombre_usuario
+		             }
+		            });
+		            $('#nombre_usuario').focus().select(); //nombre_usuario
+		             });
+	 </script>
+<?		
 	}
-	
-	
 
-	public function edita_cav($cav, $id)
-	{
-			$datos = self::$db->get_CAV($id);
-			//var_dump($datos);die;
-			$titulo = 'Usuario';
-	?>
-		<h2>Editar <?php echo $titulo; ?></h2>
-		<form method='POST'>
-			<table cellpadding="10px">
-				<tr>
-					<?
-					echo "<td><label class='label_dest'>ID:</label></td>
-					<td><input readonly = 'true' type='text' name='c_id' id='c_id' size='30' value='".$datos['ID_USUARIO'][0]."'>
-<tr>
-<td><label class='label_dest'>Nombre:</label></td>
-					<td><input type='text' name='respons' id='respons' size='30' value='".$datos['NOMBRE'][0]."'>
-<tr>
-					<td><label class='label_dest'>Estado:</label></td>
-					<td><input type='text' name='c_estado' id='c_estado' size='30' value='".$datos['ESTADO'][0]."'>";
-					?>
-				</tr>
-				<tr>
-					<td><button type='button' id='cmd_edita' class="boton_dest" onclick='javascript:actualiza_cav("<?php echo $cav; ?>", "<?php echo $id; ?>");'>Guardar</button></td>
-					<td><button type="button" id="cmd_cancela_dest" class="boton_dest" onclick='javascript:cancela_cav("<?php echo strtolower($titulo); ?>");'>Cancelar</button></td>
-				</tr>
-			</table>
-		</form>
-	<?php }
-
-	public function actualiza_cav($nombre, $id, $estado){
-		self::$db->actualiza_cav($nombre, $id, $estado);
-	}
-	
-
-
-
-	public function elimina_cav($cav, $id)
-	{
-		if($cav == 'mant_cav'){ self::$db->elimina_cav($id); }
-	}
-	
-	public function nuevo_cav($cav)
-	{ 
-		if($cav == 'mant_cav'){ $titulo = 'CAV'; }
-
-	?>
-		<h2>Agregar Usuario<?php echo $titulo;?></h2>
-		<form method='POST'>
-			<table cellpadding="10px">
-				<tr>
-					<? if($cav == 'mant_cav'){
-					echo "<td><label class='label_dest'>ID Usuario:</label></td>
-					<td><input type='text' name='respons' id='respons' size='30' value=''></td>";
-
-					}?>
-				</tr>
-				<tr>
-					<td><button type='button' id='cmd_agrega_dest' class="boton_dest" onclick='agrega_cav("<?php echo strtolower($titulo); ?>");'>Agregar</button></td>
-					<td><button type="button" id="cmd_cancela_dest" class="boton_dest" onclick='javascript:cancela_cav("<?php echo strtolower($titulo); ?>");'>Cancelar</button></td>
-				</tr>
-			</table>
-		</form>
-	<?php }
-	
-	public function agrega_cav($rut){
-		
-		$existe = self::$db->get_ID_Insert($rut);
-		if (count($existe)>1){
-			$resp=self::$db->agrega_cav($existe['ID_USUARIO'][0], $existe['RUT'][0], $existe['NOMBRE_PERSONA'][0]);
-			echo $resp['codigo'];
+	public function guardarAsignarOrden( $id_escalamiento, $id_usuario ){
+		$result = self::$db->updAsignarOrden( $id_escalamiento, $id_usuario );
+		if( $result['codigo'] == 1 ){
+			self::$db->LogupdAsignarOrden( $id_escalamiento, $id_usuario );
+?>
+			<script language="javascript">
+				alert( 'Asignacion de Orden realizada exitosamente');
+				$('#reasignar_ordenes').dialog("close");
+				var pesta = $("#maintab").tabs();  
+	    		pesta.tabs("enable", 4); 
+	    		pesta.tabs("load", 4);
+			</script>
+<?			
 		}else{
-			$resp=2;
-			echo $resp;
+?>
+			<script language="javascript">
+				alert( 'Error en la asignacion de Orden...');
+			</script>
+<?			
 		}
 	}
-//MANT
-	
 }
